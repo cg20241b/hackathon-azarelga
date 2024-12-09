@@ -35,9 +35,10 @@ scene.add(lightCube);
 lightCube.position.set(0, 0, 0);
 
 // Camera positioning
-camera.position.z = 5;
+camera.position.z = 3;
 
 // Font loader
+let lMaterial, sixMaterial;
 const fontLoader = new FontLoader();
 fontLoader.load('./src/fonts/helvetiker_regular.typeface.json', (font) => {
     // Character "L"
@@ -90,7 +91,6 @@ function animate() {
     // Camera movement
     if (keyState['a']) camera.position.x -= 0.1;
     if (keyState['d']) camera.position.x += 0.1;
-
     renderer.render(scene, camera);
 }
 
