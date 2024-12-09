@@ -1,67 +1,104 @@
 import * as THREE from 'three';
+import { createCustomShaderMaterial } from './shaderUtils.js';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 
-// Create scene
+// Scene setup
 const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('mainCanvas') });
+renderer.setSize(window.innerWidth, window.innerHeight);
 
-// Create camera
-const camera = new THREE.PerspectiveCamera(
-    75, window.innerWidth / window.innerHeight, 0.1, 1000
-);
+// Light source cube
+const lightCubeGeometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+const lightCubeMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        glowColor: { value: new THREE.Color(1, 1, 1) }
+    },
+    vertexShader: `
+        varying vec3 vPosition;
+        void main() {
+            vPosition = position;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 glowColor;
+        void main() {
+            gl_FragColor = vec4(glowColor, 0.8);
+        }
+    `,
+    transparent: true
+});
+const lightCube = new THREE.Mesh(lightCubeGeometry, lightCubeMaterial);
+scene.add(lightCube);
+lightCube.position.set(0, 0, 0);
+
+// Camera positioning
 camera.position.z = 5;
 
-// Create renderer
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
+// Font loader
+const fontLoader = new FontLoader();
+fontLoader.load('./src/fonts/helvetiker_regular.typeface.json', (font) => {
+    // Character "L"
+    const lGeometry = new TextGeometry('L', {
+        font: font,
+        size: 1,
+        height: 0.2,
+    });
+    const lMaterial = createCustomShaderMaterial('#636B2F', {
+        lightPosition: lightCube.position,
+        materialType: 'plastic'
+    });
+    const lMesh = new THREE.Mesh(lGeometry, lMaterial);
+    lMesh.position.set(-2, 0, 0);
+    scene.add(lMesh);
 
-// Load font and create text meshes
-const loader = new FontLoader();
-loader.load(
-    './fonts/helvetiker_regular.typeface.json',
-    function (font) {
-        // Text mesh for 'L'
-        const textGeometry1 = new TextGeometry('L', {
-            font: font,
-            size: 1,
-            height: 0.2,
-        });
-        const textMaterial1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-        const textMesh1 = new THREE.Mesh(textGeometry1, textMaterial1);
-        textMesh1.position.set(-1, 0, 0); // Left side
-        scene.add(textMesh1);
+    // Digit "6"
+    const sixGeometry = new TextGeometry('6', {
+        font: font,
+        size: 1,
+        height: 0.2,
+    });
+    const sixMaterial = createCustomShaderMaterial('#2F6B63', {
+        lightPosition: lightCube.position,
+        materialType: 'metal',
+        shininess: 100
+    });
+    const sixMesh = new THREE.Mesh(sixGeometry, sixMaterial);
+    sixMesh.position.set(2, 0, 0);
+    scene.add(sixMesh);
+});
 
-        // Text mesh for '6'
-        const textGeometry2 = new TextGeometry('6', {
-            font: font,
-            size: 1,
-            height: 0.2,
-        });
-        const textMaterial2 = new THREE.MeshBasicMaterial({ color: 0x0000ff });
-        const textMesh2 = new THREE.Mesh(textGeometry2, textMaterial2);
-        textMesh2.position.set(1, 0, 0); // Right side
-        scene.add(textMesh2);
-    }
-);
+// Keyboard controls
+const keyState = {};
+window.addEventListener('keydown', (e) => {
+    keyState[e.key.toLowerCase()] = true;
+});
+window.addEventListener('keyup', (e) => {
+    keyState[e.key.toLowerCase()] = false;
+});
 
-// Animation loop
+// Animation loop with controls
 function animate() {
     requestAnimationFrame(animate);
+
+    // Cube movement
+    if (keyState['w']) lightCube.position.y += 0.1;
+    if (keyState['s']) lightCube.position.y -= 0.1;
+
+    // Camera movement
+    if (keyState['a']) camera.position.x -= 0.1;
+    if (keyState['d']) camera.position.x += 0.1;
+
     renderer.render(scene, camera);
 }
 
-window.addEventListener('resize', onWindowResize, false);
-
-function onWindowResize() {
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    // Update renderer
-    renderer.setSize(width, height);
-
-    // Update camera
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-}
 animate();
+
+// Responsive handling
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
